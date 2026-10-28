@@ -25,6 +25,8 @@ fn run() -> Result<(), String> {
     }
 }
 
+
+
 fn print_help() {
     println!("DriverGuard: review-first driver inventory and updater\n\nUSAGE:\n  driverguard scan\n  driverguard plan\n  driverguard install\n\nSupported: Windows 10/11, Ubuntu, Debian, Fedora, Arch Linux");
 }
