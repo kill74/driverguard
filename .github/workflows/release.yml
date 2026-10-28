@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: driverguard-linux-x86_64
+          - os: windows-latest
+            artifact: driverguard-windows-x86_64
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify tag matches package version
+        shell: pwsh
+        run: |
+          $manifest = Get-Content Cargo.toml -Raw
+          $versionMatch = [regex]::Match($manifest, '(?m)^version\s*=\s*"([^"]+)"')
+          if (-not $versionMatch.Success) {
+            throw "Could not read package version from Cargo.toml."
+          }
+          $expectedTag = "v$($versionMatch.Groups[1].Value)"
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
+            throw "Release tag '$env:GITHUB_REF_NAME' does not match package version '$expectedTag'."
+          }
+
+      - name: Run tests
+        run: cargo test
+
+      - name: Build release executable
+        run: cargo build --release
+
+      - name: Package Linux archive
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist
+          tar -czf dist/driverguard-linux-x86_64.tar.gz -C target/release driverguard -C "$GITHUB_WORKSPACE" README.md
+
+      - name: Package Windows archive
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path target/release/driverguard.exe, README.md -DestinationPath dist/driverguard-windows-x86_64.zip
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release archives
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate SHA-256 checksums
+        working-directory: dist
+        run: sha256sum driverguard-linux-x86_64.tar.gz driverguard-windows-x86_64.zip > SHA256SUMS
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DriverGuard ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/*

@@ -1,0 +1,9 @@
+[package]
+name = "driverguard"
+version = "0.1.0"
+edition = "2021"
+description = "Review-first driver inventory and updater for Windows and Linux"
+
+[[bin]]
+name = "driverguard"
+path = "src/main.rs"
