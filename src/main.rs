@@ -1,6 +1,8 @@
 use std::env;
 use std::io::{self, IsTerminal, Write};
-use std::process::{Command, Output};
+use std::process::Command;
+#[cfg(windows)]
+use std::process::Output;
 
 fn main() {
     if let Err(error) = run() {
@@ -326,10 +328,19 @@ fn pci_sysfs_inventory() -> (Vec<String>, Option<GpuVendor>) {
 
 #[cfg(target_os = "linux")]
 fn vendor_from_text(text: &str) -> GpuVendor {
-    if text.contains("nvidia") || text.contains("10de") { GpuVendor::Nvidia }
-    else if text.contains("amd") || text.contains("ati") || text.contains("1002") { GpuVendor::Amd }
-    else if text.contains("intel") || text.contains("8086") { GpuVendor::Intel }
-    else { GpuVendor::Other }
+    let has_token = |candidates: &[&str]| {
+        text.split(|character: char| !character.is_ascii_alphanumeric())
+            .any(|token| candidates.iter().any(|candidate| token.eq_ignore_ascii_case(candidate)))
+    };
+    if has_token(&["nvidia", "10de"]) {
+        GpuVendor::Nvidia
+    } else if has_token(&["amd", "ati", "1002"]) {
+        GpuVendor::Amd
+    } else if has_token(&["intel", "8086"]) {
+        GpuVendor::Intel
+    } else {
+        GpuVendor::Other
+    }
 }
 
 #[cfg(target_os = "linux")]
@@ -395,5 +406,6 @@ mod tests {
         assert_eq!(vendor_from_text("NVIDIA Corporation [10de]"), GpuVendor::Nvidia);
         assert_eq!(vendor_from_text("Advanced Micro Devices [1002]"), GpuVendor::Amd);
         assert_eq!(vendor_from_text("Intel Corporation [8086]"), GpuVendor::Intel);
+        assert_eq!(vendor_from_text("ATI Technologies"), GpuVendor::Amd);
     }
 }

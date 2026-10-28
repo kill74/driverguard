@@ -145,7 +145,7 @@ To run `driverguard` from any directory, put the executable in a directory on yo
 
 ### Maintainer release process
 
-The CI workflow runs tests and an optimized build on Windows and Linux for pushes and pull requests. The release workflow also runs tests on both platforms. To publish downloadable binaries, update the package version in `Cargo.toml` and push a matching version tag such as `v0.1.0` to GitHub. The release workflow checks that the tag matches the package version, builds Windows x64 and Linux x64 archives, generates SHA-256 checksums, and creates a GitHub release. A mismatched tag fails before packaging.
+The CI workflow runs tests and an optimized build on Windows and Linux for pushes and pull requests. The release workflow also runs tests on both platforms. To publish downloadable binaries, update the package version in `Cargo.toml` and push a matching version tag such as `vX.Y.Z` to GitHub. The release workflow checks that the tag matches the package version, builds Windows x64 and Linux x64 archives, generates SHA-256 checksums, and creates a GitHub release. A mismatched tag fails before packaging.
 
 ## Recommended workflow
 
